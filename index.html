@@ -3,44 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event QR Checker</title>
+    <title>Event Guest Verification System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- QR Scanner Library (html5-qrcode) -->
+    <!-- QR Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(59, 130, 246, 0.5); }
+            50% { border-color: rgba(59, 130, 246, 1); }
+        }
+        .scanner-glow {
+            animation: pulse-border 2s infinite;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center justify-center">
+<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen p-4 flex flex-col items-center justify-center text-slate-100">
 
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg p-6">
-        <h1 class="text-2xl font-bold text-center text-gray-800 mb-4">Event Guest Checker</h1>
-
-        <!-- QR Scanner Viewport -->
-        <div id="reader" class="w-full rounded-xl overflow-hidden border-2 border-blue-500 mb-4"></div>
-
-        <!-- Result Card -->
-        <div id="resultCard" class="hidden border rounded-2xl p-4 bg-gray-50 text-center mt-4 shadow-inner">
-            <img id="guestImg" src="" alt="Guest Photo" class="w-24 h-24 rounded-full mx-auto mb-3 object-cover border-4 border-blue-500">
-            <h2 id="guestName" class="text-xl font-bold text-gray-800"></h2>
-            <p id="guestStatus" class="inline-block px-3 py-1 text-xs font-semibold rounded-full my-2"></p>
-            
-            <div class="text-left text-sm text-gray-600 mt-3 space-y-1 bg-white p-3 rounded-lg border">
-                <p><strong>Code:</strong> <span id="guestCode"></span></p>
-                <p><strong>Invite Date:</strong> <span id="guestDate"></span></p>
-                <p><strong>Phone:</strong> <span id="guestPhone"></span></p>
-            </div>
-
-            <button onclick="resetScanner()" class="mt-4 w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700">තවත් QR එකක් Scan කරන්න</button>
+    <div class="max-w-md w-full bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-3xl shadow-2xl p-6 transition-all duration-300">
+        
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <span class="bg-blue-500/10 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full border border-blue-500/20">Secure Event Pass</span>
+            <h1 class="text-2xl font-extrabold text-white mt-2 tracking-wide">Guest Verification</h1>
+            <p class="text-xs text-slate-400 mt-1">අමුත්තන්ගේ QR කේතය ස්කෑන් කරන්න</p>
         </div>
 
-        <!-- Error Alert -->
-        <div id="errorMsg" class="hidden p-4 bg-red-100 border border-red-300 text-red-700 rounded-xl text-center mt-4">
-            <p class="font-bold">වලංගු නොවන QR Code එකකි!</p>
-            <button onclick="resetScanner()" class="mt-3 w-full bg-red-600 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-red-700">නැවත Scan කරන්න</button>
+        <!-- QR Scanner Viewport -->
+        <div id="scannerContainer" class="relative overflow-hidden rounded-2xl border-4 scanner-glow bg-slate-900 shadow-inner mb-4 transition-all">
+            <div id="reader" class="w-full"></div>
+        </div>
+
+        <!-- Result Card (Hidden by default with smooth transition) -->
+        <div id="resultCard" class="hidden transform transition-all duration-500 scale-95 opacity-0 bg-slate-900/90 border border-slate-700 rounded-2xl p-5 text-center shadow-2xl">
+            <div class="relative w-28 h-28 mx-auto mb-4">
+                <img id="guestImg" src="" alt="Guest Photo" class="w-28 h-28 rounded-full object-cover border-4 border-blue-500 shadow-lg">
+                <span id="statusBadge" class="absolute bottom-0 right-0 px-2.5 py-0.5 text-xs font-bold rounded-full text-white shadow"></span>
+            </div>
+            
+            <h2 id="guestName" class="text-2xl font-bold text-white tracking-tight"></h2>
+            
+            <div class="text-left text-xs text-slate-300 mt-4 space-y-2 bg-slate-800/90 p-4 rounded-xl border border-slate-700/60 shadow-sm">
+                <div class="flex justify-between border-b border-slate-700 pb-1.5">
+                    <span class="text-slate-400">Guest Code:</span>
+                    <span id="guestCode" class="font-mono font-semibold text-blue-400"></span>
+                </div>
+                <div class="flex justify-between border-b border-slate-700 pb-1.5">
+                    <span class="text-slate-400">Invite Date:</span>
+                    <span id="guestDate" class="font-medium text-slate-200"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Phone:</span>
+                    <span id="guestPhone" class="font-mono text-slate-200"></span>
+                </div>
+            </div>
+
+            <button onclick="resetScanner()" class="mt-5 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-600/30 transition duration-200 transform active:scale-95">
+                🔄 තවත් QR එකක් Scan කරන්න
+            </button>
+        </div>
+
+        <!-- Error Alert Card -->
+        <div id="errorMsg" class="hidden transform transition-all duration-300 bg-red-950/80 border border-red-800/60 text-red-200 rounded-2xl p-5 text-center shadow-xl">
+            <div class="w-12 h-12 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-bold">✕</div>
+            <p class="font-bold text-lg">වලංගු නොවන Code එකකි!</p>
+            <p class="text-xs text-red-300 mt-1">මෙම QR code එක පද්ධතියේ ලියාපදිංචි කර නැත.</p>
+            <button onclick="resetScanner()" class="mt-4 w-full bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-red-600/30 transition duration-200">
+                නැවත Scan කරන්න
+            </button>
+        </div>
+
+        <!-- Footer Note -->
+        <div class="text-center mt-4">
+            <p class="text-[10px] text-slate-500">Offline Event System v2.0</p>
         </div>
     </div>
 
     <script>
-        // 1. අමුත්තන්ගේ දත්ත පද්ධතිය (Guest Database)
+        // අමුත්තන්ගේ දත්ත පද්ධතිය (Guest Database)
         const guests = [
             {
                 code: "fr345tsgus",
@@ -62,25 +102,22 @@
 
         let html5QrCode;
 
-        // 2. QR Code එක Scan වූ විට ක්‍රියාත්මක වන කොටස
         function onScanSuccess(decodedText, decodedResult) {
-            // කැමරාව තාවකාලිකව නවතා දමයි
-            html5QrCode.stop().then((ignore) => {
+            html5QrCode.stop().then(() => {
                 verifyCode(decodedText);
             }).catch((err) => {
                 verifyCode(decodedText);
             });
         }
 
-        // 3. Code එක පද්ධතියේ තිබේදැයි පරීක්ෂා කිරීම
         function verifyCode(scannedCode) {
             const guest = guests.find(g => g.code.trim().toLowerCase() === scannedCode.trim().toLowerCase());
 
             const resultCard = document.getElementById('resultCard');
             const errorMsg = document.getElementById('errorMsg');
-            const readerElem = document.getElementById('reader');
+            const scannerContainer = document.getElementById('scannerContainer');
 
-            readerElem.classList.add('hidden');
+            scannerContainer.classList.add('hidden');
 
             if (guest) {
                 document.getElementById('guestImg').src = guest.photo;
@@ -89,44 +126,50 @@
                 document.getElementById('guestDate').innerText = guest.inviteDate;
                 document.getElementById('guestPhone').innerText = guest.phone;
 
-                const statusElem = document.getElementById('guestStatus');
-                statusElem.innerText = guest.status;
+                const badge = document.getElementById('statusBadge');
+                badge.innerText = guest.status;
                 if (guest.status === "VIP") {
-                    statusElem.className = "inline-block px-3 py-1 text-xs font-semibold rounded-full my-2 bg-yellow-100 text-yellow-800 border border-yellow-300";
+                    badge.className = "absolute bottom-0 right-0 px-3 py-1 text-xs font-bold rounded-full bg-amber-500 text-slate-950 shadow-md border-2 border-slate-900";
                 } else {
-                    statusElem.className = "inline-block px-3 py-1 text-xs font-semibold rounded-full my-2 bg-green-100 text-green-800 border border-green-300";
+                    badge.className = "absolute bottom-0 right-0 px-3 py-1 text-xs font-bold rounded-full bg-emerald-500 text-slate-950 shadow-md border-2 border-slate-900";
                 }
 
                 resultCard.classList.remove('hidden');
+                setTimeout(() => {
+                    resultCard.classList.remove('scale-95', 'opacity-0');
+                    resultCard.classList.add('scale-100', 'opacity-100');
+                }, 50);
             } else {
                 errorMsg.classList.remove('hidden');
             }
         }
 
-        // 4. නැවත Scan කිරීම සඳහා Reset කිරීම
         function resetScanner() {
-            document.getElementById('resultCard').classList.add('hidden');
-            document.getElementById('errorMsg').classList.add('hidden');
-            document.getElementById('reader').classList.remove('hidden');
+            const resultCard = document.getElementById('resultCard');
+            const errorMsg = document.getElementById('errorMsg');
+            const scannerContainer = document.getElementById('scannerContainer');
+
+            resultCard.classList.add('scale-95', 'opacity-0');
+            resultCard.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+            scannerContainer.classList.remove('hidden');
+
             startScanner();
         }
 
-        // 5. කැමරාව ආරම්භ කිරීම
         function startScanner() {
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            const config = { fps: 15, qrbox: { width: 220, height: 220 } };
             
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
             .catch((err) => {
-                // පසුපස කැමරාව ලබාගත නොහැකි නම් සාමාන්‍ය කැමරාව උත්සාහ කරයි
                 html5QrCode.start({ facingMode: "user" }, config, onScanSuccess)
                 .catch((err2) => {
-                    alert("කැමරාව ක්‍රියාත්මක කිරීම අසාර්ථක විය. කරුණාකර Browser එකේ Camera Permission ලබා දී ඇත්දැයි පරීක්ෂා කරන්න.");
+                    alert("කැමරාව ක්‍රියාත්මක කිරීම අසාර්ථක විය. කරුණාකර Camera Permission ලබා දී ඇත්දැයි පරීක්ෂා කරන්න.");
                 });
             });
         }
 
-        // Page එක Load වූ වහාම කැමරාව පටන් ගනී
         window.onload = function() {
             startScanner();
         };
