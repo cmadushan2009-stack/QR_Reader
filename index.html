@@ -23,10 +23,17 @@
     <div class="max-w-md w-full bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-3xl shadow-2xl p-6 transition-all duration-300">
         
         <!-- Header -->
-        <div class="text-center mb-6">
+        <div class="text-center mb-4">
             <span class="bg-blue-500/10 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full border border-blue-500/20">Secure Event Pass</span>
             <h1 class="text-2xl font-extrabold text-white mt-2 tracking-wide">Guest Verification</h1>
             <p class="text-xs text-slate-400 mt-1">අමුත්තන්ගේ QR කේතය ස්කෑන් කරන්න</p>
+        </div>
+
+        <!-- Download Report Button -->
+        <div class="mb-5 text-center">
+            <button onclick="downloadReport()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-4 rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 transition duration-200 flex items-center justify-center gap-2">
+                📊 Attendance Report (CSV / Excel) Download කරන්න
+            </button>
         </div>
 
         <!-- QR Scanner Viewport -->
@@ -34,7 +41,7 @@
             <div id="reader" class="w-full"></div>
         </div>
 
-        <!-- Result Card (Hidden by default with smooth transition) -->
+        <!-- Result Card -->
         <div id="resultCard" class="hidden transform transition-all duration-500 scale-95 opacity-0 bg-slate-900/90 border border-slate-700 rounded-2xl p-5 text-center shadow-2xl">
             <div class="relative w-28 h-28 mx-auto mb-4">
                 <img id="guestImg" src="" alt="Guest Photo" class="w-28 h-28 rounded-full object-cover border-4 border-blue-500 shadow-lg">
@@ -80,7 +87,7 @@
     </div>
 
     <script>
-        // අමුත්තන්ගේ දත්ත පද්ධතිය (Guest Database)
+        // අමුත්තන්ගේ දත්ත පද්ධතිය (Guest Database - scanned: false/true & scanTime එකතු කර ඇත)
         const guests = [
             {
                 code: "fr345tsgus",
@@ -88,7 +95,9 @@
                 inviteDate: "2026-11-10",
                 status: "VIP",
                 phone: "0771234567",
-                photo: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80"
+                photo: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80",
+                scanned: false,
+                scanTime: "-"
             },
             {
                 code: "inv987654",
@@ -96,7 +105,9 @@
                 inviteDate: "2026-11-10",
                 status: "Regular",
                 phone: "0719876543",
-                photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80"
+                photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
+                scanned: false,
+                scanTime: "-"
             }
         ];
 
@@ -120,6 +131,11 @@
             scannerContainer.classList.add('hidden');
 
             if (guest) {
+                // Mark guest as scanned with current time
+                guest.scanned = true;
+                const now = new Date();
+                guest.scanTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
                 document.getElementById('guestImg').src = guest.photo;
                 document.getElementById('guestName').innerText = guest.name;
                 document.getElementById('guestCode').innerText = guest.code;
@@ -168,6 +184,44 @@
                     alert("කැමරාව ක්‍රියාත්මක කිරීම අසාර්ථක විය. කරුණාකර Camera Permission ලබා දී ඇත්දැයි පරීක්ෂා කරන්න.");
                 });
             });
+        }
+
+        // CSV Report එක නිර්මාණය කර Download කරන Function එක
+        function downloadReport() {
+            const scannedGuests = guests.filter(g => g.scanned);
+            const notScannedGuests = guests.filter(g => !g.scanned);
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Summary Header
+            csvContent += "=== EVENT ATTENDANCE SUMMARY ===\n";
+            csvContent += `Total Guests,${guests.length}\n`;
+            csvContent += `Total Scanned,${scannedGuests.length}\n`;
+            csvContent += `Total Not Scanned,${notScannedGuests.length}\n\n`;
+
+            // Scanned Guests List
+            csvContent += "=== SCANNED GUESTS (පැමිණි අය) ===\n";
+            csvContent += "Code,Name,Status,Phone,Scan Time\n";
+            scannedGuests.forEach(g => {
+                csvContent += `"${g.code}","${g.name}","${g.status}","${g.phone}","${g.scanTime}"\n`;
+            });
+
+            // Not Scanned Guests List
+            csvContent += "\n=== NOT SCANNED GUESTS (නොපැමිණි අය) ===\n";
+            csvContent += "Code,Name,Status,Phone\n";
+            notScannedGuests.forEach(g => {
+                csvContent += `"${g.code}","${g.name}","${g.status}","${g.phone}"\n`;
+            });
+
+            // Trigger File Download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            const today = new Date().toISOString().slice(0,10);
+            link.setAttribute("download", `Event_Attendance_Report_${today}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         window.onload = function() {
